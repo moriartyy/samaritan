@@ -5,17 +5,17 @@ import org.samaritan.transport.Channel;
 import org.samaritan.transport.ChannelHandler;
 import org.samaritan.transport.Node;
 import org.samaritan.transport.NodeException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -27,6 +27,7 @@ public class NioNetNode implements Node {
 
     private List<MonitorTask> tasks = Lists.newLinkedList();
     private ExecutorService tasksExecutor;
+    private static Logger logger = LoggerFactory.getLogger(NioNetNode.class);
 
     @Override
     public Channel connect(InetSocketAddress address) {
@@ -68,8 +69,8 @@ public class NioNetNode implements Node {
         private ServerSocketChannel serverChannel;
         private Selector selector;
         private final InetSocketAddress monitoringAddress;
-        private Thread thread;
-        private AtomicBoolean running;
+        private Thread bossThread;
+        private AtomicBoolean running = new AtomicBoolean(false);
 
         static MonitorTask start(InetSocketAddress address, ChannelHandler channelHandler) throws Exception {
             MonitorTask task = new MonitorTask(address, channelHandler);
@@ -89,7 +90,7 @@ public class NioNetNode implements Node {
             serverChannel.configureBlocking(false);
             serverChannel.bind(monitoringAddress);
             serverChannel.register(selector, SelectionKey.OP_ACCEPT);
-            thread = new Thread(() -> {
+            bossThread = new Thread(() -> {
                 while(running.get()) {
                     try {
                         selector.select();
@@ -101,20 +102,31 @@ public class NioNetNode implements Node {
                                 ServerSocketChannel serverChannel = (ServerSocketChannel)key.channel();
                                 SocketChannel clientChannel = serverChannel.accept();
                                 clientChannel.configureBlocking(false);
-                                clientChannel.register(selector, SelectionKey.OP_READ);
+                                NioChannel channel = new NioChannel(clientChannel);
+                                clientChannel.register(selector, SelectionKey.OP_READ, channel);
+                                channelHandler.onConnected(channel);
+                            } else if (key.isReadable()) {
+                                NioChannel channelIn = (SocketChannel) key.attachment());
+                                channelHandler.onReceived(channelIn);
                             }
                         }
-                    } catch (IOException ignored) {
+                    } catch (IOException e) {
+                        logger.error("Error happened", e);
                         break;
                     }
                 }
             });
-            thread.start();
+            bossThread.start();
+        }
+
+        private void handleChannelRead(SocketChannel clientChannel) {
+            NioChannel channel = new NioChannel(clientChannel);
+            channelHandler.
         }
 
         void stop() {
             running.set(false);
-            thread.interrupt();
+            bossThread.interrupt();
             try {
                 selector.close();
             } catch (IOException ignored) {

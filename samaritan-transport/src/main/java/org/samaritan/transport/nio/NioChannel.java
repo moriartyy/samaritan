@@ -4,11 +4,16 @@ import org.samaritan.transport.Channel;
 import org.samaritan.transport.Node;
 
 import java.net.InetSocketAddress;
+import java.nio.channels.SocketChannel;
 
 /**
  * @author Loster on 2016/8/11.
  */
 public class NioChannel implements Channel {
+
+    public NioChannel(SocketChannel socket) {
+
+    }
 
     @Override
     public InetSocketAddress remoteAddress() {
