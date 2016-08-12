@@ -1,17 +1,27 @@
 package org.samaritan.transport.nio;
 
 import org.samaritan.transport.Channel;
-import org.samaritan.transport.Node;
+import org.samaritan.transport.ChannelListener;
 
 import java.net.InetSocketAddress;
-import java.nio.channels.SocketChannel;
+import java.util.List;
 
 /**
- * @author Loster on 2016/8/11.
+ * @author Loster on 2016/8/12.
  */
 public class NioChannel implements Channel {
+    @Override
+    public void addListener(ChannelListener channelListener) {
 
-    public NioChannel(SocketChannel socket) {
+    }
+
+    @Override
+    public List<ChannelListener> listeners() {
+        return null;
+    }
+
+    @Override
+    public void close() {
 
     }
 
@@ -29,6 +39,4 @@ public class NioChannel implements Channel {
     public void send(Object obj) {
 
     }
-
-
 }

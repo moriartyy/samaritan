@@ -7,11 +7,11 @@ import java.net.InetSocketAddress;
  */
 public interface Node {
 
-    Channel connect(InetSocketAddress address) throws NodeException;
+    Channel connect(InetSocketAddress address, ChannelListener listeners) throws NodeException;
 
     InetSocketAddress address();
 
-    void monitor(InetSocketAddress address, ChannelHandler channelHandler) throws NodeException;
+    void serve(InetSocketAddress address, ChannelListener channelListener) throws NodeException;
 
     void start();
 
